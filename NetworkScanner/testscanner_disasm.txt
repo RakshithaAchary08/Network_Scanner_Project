@@ -1,0 +1,38 @@
+Picked up JAVA_TOOL_OPTIONS: -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8
+Compiled from "TestScanner.java"
+public class com.networkscanner.TestScanner {
+  public com.networkscanner.TestScanner();
+    Code:
+       0: aload_0
+       1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+       4: return
+
+  public static void main(java.lang.String[]);
+    Code:
+       0: invokestatic  #7                  // Method com/networkscanner/NetworkScanner.scanNetwork:()Ljava/util/ArrayList;
+       3: astore_1
+       4: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       7: ldc           #19                 // String \nDevices Found:
+       9: invokevirtual #21                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+      12: aload_1
+      13: invokevirtual #27                 // Method java/util/ArrayList.iterator:()Ljava/util/Iterator;
+      16: astore_2
+      17: aload_2
+      18: invokeinterface #33,  1           // InterfaceMethod java/util/Iterator.hasNext:()Z
+      23: ifeq          62
+      26: aload_2
+      27: invokeinterface #39,  1           // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+      32: checkcast     #43                 // class com/networkscanner/DeviceInfo
+      35: astore_3
+      36: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+      39: aload_3
+      40: invokevirtual #45                 // Method com/networkscanner/DeviceInfo.getIp:()Ljava/lang/String;
+      43: aload_3
+      44: invokevirtual #49                 // Method com/networkscanner/DeviceInfo.getHostname:()Ljava/lang/String;
+      47: aload_3
+      48: invokevirtual #52                 // Method com/networkscanner/DeviceInfo.getResponseTime:()J
+      51: invokedynamic #56,  0             // InvokeDynamic #0:makeConcatWithConstants:(Ljava/lang/String;Ljava/lang/String;J)Ljava/lang/String;
+      56: invokevirtual #21                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+      59: goto          17
+      62: return
+}
