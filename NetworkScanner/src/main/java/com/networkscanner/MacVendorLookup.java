@@ -1,7 +1,12 @@
 package com.networkscanner;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * MAC Vendor Lookup using OUI (Organizationally Unique Identifier) database.
@@ -10,6 +15,9 @@ import java.util.Map;
 public class MacVendorLookup {
 
     private static final Map<String, String> OUI_DATABASE = new HashMap<>();
+
+    // Runtime cache for OUIs not in the static database — avoids repeat API calls
+    private static final Map<String, String> API_CACHE = new ConcurrentHashMap<>();
 
     static {
         // Common vendor OUI prefixes (first 3 octets / 6 hex characters)
@@ -488,37 +496,439 @@ public class MacVendorLookup {
         OUI_DATABASE.put("A0:E9:DE", "TP-Link");
         OUI_DATABASE.put("E0:55:3D", "TP-Link");
         OUI_DATABASE.put("1C:BD:B9", "TP-Link");
+        OUI_DATABASE.put("18:D6:C7", "TP-Link");
+        OUI_DATABASE.put("50:C7:BF", "TP-Link");
+        OUI_DATABASE.put("60:32:B1", "TP-Link");
+        OUI_DATABASE.put("6C:5A:B0", "TP-Link");
+        OUI_DATABASE.put("8C:21:0A", "TP-Link");
+        OUI_DATABASE.put("B0:48:7A", "TP-Link");
+        OUI_DATABASE.put("C0:25:E9", "TP-Link");
+        OUI_DATABASE.put("D8:0D:17", "TP-Link");
+        OUI_DATABASE.put("EC:17:2F", "TP-Link");
+        OUI_DATABASE.put("20:23:51", "TP-Link");
+        OUI_DATABASE.put("10:BE:F5", "TP-Link");
+        OUI_DATABASE.put("30:DE:4B", "TP-Link");
+        OUI_DATABASE.put("40:3F:8C", "TP-Link");
+        OUI_DATABASE.put("54:A7:03", "TP-Link");
+        OUI_DATABASE.put("70:4F:57", "TP-Link");
+        OUI_DATABASE.put("AC:84:C6", "TP-Link");
+        OUI_DATABASE.put("F8:1A:67", "TP-Link");
+
+        // D-Link
+        OUI_DATABASE.put("00:05:5D", "D-Link");
+        OUI_DATABASE.put("00:0D:88", "D-Link");
+        OUI_DATABASE.put("00:11:95", "D-Link");
+        OUI_DATABASE.put("00:13:46", "D-Link");
+        OUI_DATABASE.put("00:15:E9", "D-Link");
+        OUI_DATABASE.put("00:17:9A", "D-Link");
+        OUI_DATABASE.put("00:19:5B", "D-Link");
+        OUI_DATABASE.put("00:1B:11", "D-Link");
+        OUI_DATABASE.put("00:1C:F0", "D-Link");
+        OUI_DATABASE.put("00:1E:58", "D-Link");
+        OUI_DATABASE.put("00:21:91", "D-Link");
+        OUI_DATABASE.put("00:22:B0", "D-Link");
+        OUI_DATABASE.put("00:24:01", "D-Link");
+        OUI_DATABASE.put("00:26:5A", "D-Link");
+        OUI_DATABASE.put("14:D6:4D", "D-Link");
+        OUI_DATABASE.put("1C:7E:E5", "D-Link");
+        OUI_DATABASE.put("28:10:7B", "D-Link");
+        OUI_DATABASE.put("34:08:04", "D-Link");
+        OUI_DATABASE.put("84:C9:B2", "D-Link");
+        OUI_DATABASE.put("90:94:E4", "D-Link");
+        OUI_DATABASE.put("B8:A3:86", "D-Link");
+        OUI_DATABASE.put("C8:BE:19", "D-Link");
+        OUI_DATABASE.put("CC:B2:55", "D-Link");
+        OUI_DATABASE.put("F0:7D:68", "D-Link");
+        OUI_DATABASE.put("FC:75:16", "D-Link");
+
+        // Huawei
+        OUI_DATABASE.put("00:18:82", "Huawei");
+        OUI_DATABASE.put("00:1E:10", "Huawei");
+        OUI_DATABASE.put("00:25:9E", "Huawei");
+        OUI_DATABASE.put("04:02:1F", "Huawei");
+        OUI_DATABASE.put("04:BD:70", "Huawei");
+        OUI_DATABASE.put("0C:37:DC", "Huawei");
+        OUI_DATABASE.put("10:47:80", "Huawei");
+        OUI_DATABASE.put("10:51:72", "Huawei");
+        OUI_DATABASE.put("14:EB:B6", "Huawei");
+        OUI_DATABASE.put("18:C5:8A", "Huawei");
+        OUI_DATABASE.put("1C:8E:5C", "Huawei");
+        OUI_DATABASE.put("20:08:ED", "Huawei");
+        OUI_DATABASE.put("20:F3:A3", "Huawei");
+        OUI_DATABASE.put("24:09:95", "Huawei");
+        OUI_DATABASE.put("24:DB:AC", "Huawei");
+        OUI_DATABASE.put("28:31:52", "Huawei");
+        OUI_DATABASE.put("2C:55:D3", "Huawei");
+        OUI_DATABASE.put("30:D1:7E", "Huawei");
+        OUI_DATABASE.put("34:6B:D3", "Huawei");
+        OUI_DATABASE.put("38:37:8B", "Huawei");
+        OUI_DATABASE.put("3C:F8:08", "Huawei");
+        OUI_DATABASE.put("40:CB:A8", "Huawei");
+        OUI_DATABASE.put("44:55:B1", "Huawei");
+        OUI_DATABASE.put("48:00:31", "Huawei");
+        OUI_DATABASE.put("4C:1F:CC", "Huawei");
+        OUI_DATABASE.put("50:01:BB", "Huawei");
+        OUI_DATABASE.put("54:51:1B", "Huawei");
+        OUI_DATABASE.put("5C:7D:5E", "Huawei");
+        OUI_DATABASE.put("60:DE:44", "Huawei");
+        OUI_DATABASE.put("64:3E:8C", "Huawei");
+        OUI_DATABASE.put("68:A0:F6", "Huawei");
+        OUI_DATABASE.put("6C:8D:C1", "Huawei");
+        OUI_DATABASE.put("70:72:3C", "Huawei");
+        OUI_DATABASE.put("74:A0:21", "Huawei");
+        OUI_DATABASE.put("78:1D:BA", "Huawei");
+        OUI_DATABASE.put("7C:A2:31", "Huawei");
+        OUI_DATABASE.put("80:FB:06", "Huawei");
+        OUI_DATABASE.put("84:A8:E4", "Huawei");
+        OUI_DATABASE.put("88:E3:AB", "Huawei");
+        OUI_DATABASE.put("8C:0D:76", "Huawei");
+        OUI_DATABASE.put("90:67:1C", "Huawei");
+        OUI_DATABASE.put("94:77:2B", "Huawei");
+        OUI_DATABASE.put("98:E7:F4", "Huawei");
+        OUI_DATABASE.put("9C:28:EF", "Huawei");
+        OUI_DATABASE.put("A0:08:6F", "Huawei");
+        OUI_DATABASE.put("A4:99:47", "Huawei");
+        OUI_DATABASE.put("A8:CA:A9", "Huawei");
+        OUI_DATABASE.put("AC:E2:15", "Huawei");
+        OUI_DATABASE.put("B4:15:13", "Huawei");
+        OUI_DATABASE.put("B8:08:D7", "Huawei");
+        OUI_DATABASE.put("BC:76:70", "Huawei");
+        OUI_DATABASE.put("C0:70:09", "Huawei");
+        OUI_DATABASE.put("C4:07:2F", "Huawei");
+        OUI_DATABASE.put("C8:51:95", "Huawei");
+        OUI_DATABASE.put("CC:A2:23", "Huawei");
+        OUI_DATABASE.put("D0:3E:5C", "Huawei");
+        OUI_DATABASE.put("D4:6E:5C", "Huawei");
+        OUI_DATABASE.put("D8:C7:71", "Huawei");
+        OUI_DATABASE.put("DC:D2:FC", "Huawei");
+        OUI_DATABASE.put("E0:19:1D", "Huawei");
+        OUI_DATABASE.put("E4:68:A3", "Huawei");
+        OUI_DATABASE.put("E8:CD:2D", "Huawei");
+        OUI_DATABASE.put("EC:CB:30", "Huawei");
+        OUI_DATABASE.put("F0:5C:19", "Huawei");
+        OUI_DATABASE.put("F4:4C:7F", "Huawei");
+        OUI_DATABASE.put("F8:3D:FF", "Huawei");
+        OUI_DATABASE.put("FC:48:EF", "Huawei");
+
+        // Xiaomi / MiRouter
+        OUI_DATABASE.put("00:9E:C8", "Xiaomi");
+        OUI_DATABASE.put("04:CF:8C", "Xiaomi");
+        OUI_DATABASE.put("0C:1D:AF", "Xiaomi");
+        OUI_DATABASE.put("10:2A:B3", "Xiaomi");
+        OUI_DATABASE.put("14:F6:5A", "Xiaomi");
+        OUI_DATABASE.put("18:59:36", "Xiaomi");
+        OUI_DATABASE.put("20:82:C0", "Xiaomi");
+        OUI_DATABASE.put("28:6C:07", "Xiaomi");
+        OUI_DATABASE.put("34:CE:00", "Xiaomi");
+        OUI_DATABASE.put("38:A4:ED", "Xiaomi");
+        OUI_DATABASE.put("3C:BD:3E", "Xiaomi");
+        OUI_DATABASE.put("4C:49:E3", "Xiaomi");
+        OUI_DATABASE.put("50:64:2B", "Xiaomi");
+        OUI_DATABASE.put("58:44:98", "Xiaomi");
+        OUI_DATABASE.put("64:09:80", "Xiaomi");
+        OUI_DATABASE.put("64:CC:2E", "Xiaomi");
+        OUI_DATABASE.put("68:DF:DD", "Xiaomi");
+        OUI_DATABASE.put("74:51:BA", "Xiaomi");
+        OUI_DATABASE.put("78:11:DC", "Xiaomi");
+        OUI_DATABASE.put("7C:1D:D9", "Xiaomi");
+        OUI_DATABASE.put("8C:BE:BE", "Xiaomi");
+        OUI_DATABASE.put("9C:99:A0", "Xiaomi");
+        OUI_DATABASE.put("A0:86:C6", "Xiaomi");
+        OUI_DATABASE.put("AC:F7:F3", "Xiaomi");
+        OUI_DATABASE.put("B0:E2:35", "Xiaomi");
+        OUI_DATABASE.put("C4:0B:CB", "Xiaomi");
+        OUI_DATABASE.put("D4:97:0B", "Xiaomi");
+        OUI_DATABASE.put("F8:A4:5F", "Xiaomi");
+        OUI_DATABASE.put("FC:64:BA", "Xiaomi");
+        OUI_DATABASE.put("F4:30:8B", "Xiaomi");
+
+        // Hikvision (IP cameras, NVR, security devices)
+        OUI_DATABASE.put("80:7C:62", "Hikvision");
+        OUI_DATABASE.put("24:32:AE", "Hikvision");
+        OUI_DATABASE.put("08:A1:89", "Hikvision");
+        OUI_DATABASE.put("DC:B7:2E", "Xiaomi");
+        OUI_DATABASE.put("00:40:48", "Hikvision");
+        OUI_DATABASE.put("18:68:CB", "Hikvision");
+        OUI_DATABASE.put("28:57:BE", "Hikvision");
+        OUI_DATABASE.put("2C:24:37", "Hikvision");
+        OUI_DATABASE.put("3C:E8:24", "Hikvision");
+        OUI_DATABASE.put("44:19:B6", "Hikvision");
+        OUI_DATABASE.put("48:EA:63", "Hikvision");
+        OUI_DATABASE.put("4C:11:BF", "Hikvision");
+        OUI_DATABASE.put("54:C4:15", "Hikvision");
+        OUI_DATABASE.put("70:5D:CC", "Hikvision");
+        OUI_DATABASE.put("BC:AD:28", "Hikvision");
+        OUI_DATABASE.put("C0:56:E3", "Hikvision");
+        OUI_DATABASE.put("D0:AE:EC", "Hikvision");
+        OUI_DATABASE.put("E8:D2:D1", "Hikvision");
+
+        // Dahua (IP cameras, NVR)
+        OUI_DATABASE.put("00:12:26", "Dahua");
+        OUI_DATABASE.put("10:A4:5B", "Dahua");
+        OUI_DATABASE.put("14:7D:C5", "Dahua");
+        OUI_DATABASE.put("34:01:F9", "Dahua");
+        OUI_DATABASE.put("90:02:A9", "Dahua");
+        OUI_DATABASE.put("BC:32:B2", "Dahua");
+
+        // Vivo (Android phones)
+        OUI_DATABASE.put("20:3B:69", "Vivo");
+        OUI_DATABASE.put("00:16:6C", "Vivo");
+        OUI_DATABASE.put("08:1F:71", "Vivo");
+        OUI_DATABASE.put("0C:1D:CF", "Vivo");
+        OUI_DATABASE.put("14:A3:64", "Vivo");
+        OUI_DATABASE.put("18:45:94", "Vivo");
+        OUI_DATABASE.put("1C:BE:EC", "Vivo");
+        OUI_DATABASE.put("20:19:06", "Vivo");
+        OUI_DATABASE.put("2C:5B:B8", "Vivo");
+        OUI_DATABASE.put("38:69:96", "Vivo");
+        OUI_DATABASE.put("40:CB:C0", "Vivo");
+        OUI_DATABASE.put("48:7A:DA", "Vivo");
+        OUI_DATABASE.put("4C:74:03", "Vivo");
+        OUI_DATABASE.put("58:2A:F7", "Vivo");
+        OUI_DATABASE.put("5C:E8:EB", "Vivo");
+        OUI_DATABASE.put("68:63:5B", "Vivo");
+        OUI_DATABASE.put("6C:5A:B0", "Vivo");
+        OUI_DATABASE.put("78:08:71", "Vivo");
+        OUI_DATABASE.put("7C:8B:B5", "Vivo");
+        OUI_DATABASE.put("84:A9:C4", "Vivo");
+        OUI_DATABASE.put("8C:79:F0", "Vivo");
+        OUI_DATABASE.put("90:96:11", "Vivo");
+        OUI_DATABASE.put("94:65:9C", "Vivo");
+        OUI_DATABASE.put("9C:B2:06", "Vivo");
+        OUI_DATABASE.put("A0:AF:12", "Vivo");
+        OUI_DATABASE.put("A4:77:33", "Vivo");
+        OUI_DATABASE.put("AC:67:84", "Vivo");
+        OUI_DATABASE.put("B4:5D:50", "Vivo");
+        OUI_DATABASE.put("BC:8B:B2", "Vivo");
+        OUI_DATABASE.put("C4:AC:59", "Vivo");
+        OUI_DATABASE.put("C8:14:79", "Vivo");
+        OUI_DATABASE.put("D4:61:DA", "Vivo");
+        OUI_DATABASE.put("D8:55:A3", "Vivo");
+        OUI_DATABASE.put("E0:2B:E9", "Vivo");
+        OUI_DATABASE.put("E4:A7:C5", "Vivo");
+        OUI_DATABASE.put("E8:9F:80", "Vivo");
+        OUI_DATABASE.put("EC:DF:3A", "Vivo");
+        OUI_DATABASE.put("F0:5C:77", "Vivo");
+        OUI_DATABASE.put("F4:63:1F", "Vivo");
+        OUI_DATABASE.put("F8:A9:D0", "Vivo");
+        OUI_DATABASE.put("FC:48:EF", "Vivo");
+
+        // OPPO / OnePlus (Android phones)
+        OUI_DATABASE.put("00:1A:11", "OPPO");
+        OUI_DATABASE.put("04:4F:4C", "OPPO");
+        OUI_DATABASE.put("08:F4:AB", "OPPO");
+        OUI_DATABASE.put("10:3B:59", "OPPO");
+        OUI_DATABASE.put("14:E6:E4", "OPPO");
+        OUI_DATABASE.put("18:26:49", "OPPO");
+        OUI_DATABASE.put("1C:77:F6", "OPPO");
+        OUI_DATABASE.put("20:0D:B0", "OPPO");
+        OUI_DATABASE.put("2C:8A:72", "OPPO");
+        OUI_DATABASE.put("34:D0:B8", "OPPO");
+        OUI_DATABASE.put("38:B5:4D", "OPPO");
+        OUI_DATABASE.put("3C:CB:7C", "OPPO");
+        OUI_DATABASE.put("40:B0:FA", "OPPO");
+        OUI_DATABASE.put("44:C3:46", "OPPO");
+        OUI_DATABASE.put("48:45:20", "OPPO");
+        OUI_DATABASE.put("4C:BC:A5", "OPPO");
+        OUI_DATABASE.put("54:8C:A0", "OPPO");
+        OUI_DATABASE.put("58:B4:2D", "OPPO");
+        OUI_DATABASE.put("5C:E5:0C", "OPPO");
+        OUI_DATABASE.put("60:A4:4C", "OPPO");
+        OUI_DATABASE.put("64:BC:58", "OPPO");
+        OUI_DATABASE.put("68:3E:34", "OPPO");
+        OUI_DATABASE.put("6C:B1:58", "OPPO");
+        OUI_DATABASE.put("70:66:55", "OPPO");
+        OUI_DATABASE.put("74:74:46", "OPPO");
+        OUI_DATABASE.put("78:58:60", "OPPO");
+        OUI_DATABASE.put("7C:A9:6B", "OPPO");
+        OUI_DATABASE.put("80:CB:46", "OPPO");
+        OUI_DATABASE.put("84:D8:1B", "OPPO");
+        OUI_DATABASE.put("88:53:2E", "OPPO");
+        OUI_DATABASE.put("8C:E1:17", "OPPO");
+        OUI_DATABASE.put("90:CC:DF", "OPPO");
+        OUI_DATABASE.put("94:4A:0C", "OPPO");
+        OUI_DATABASE.put("98:0C:A5", "OPPO");
+        OUI_DATABASE.put("9C:E3:3F", "OPPO");
+        OUI_DATABASE.put("A0:BC:FD", "OPPO");
+        OUI_DATABASE.put("A4:AF:8E", "OPPO");
+        OUI_DATABASE.put("A8:9C:ED", "OPPO");
+        OUI_DATABASE.put("AC:37:43", "OPPO");
+        OUI_DATABASE.put("B0:E5:ED", "OPPO");
+        OUI_DATABASE.put("B4:B6:86", "OPPO");
+        OUI_DATABASE.put("B8:BC:1B", "OPPO");
+        OUI_DATABASE.put("BC:A5:11", "OPPO");
+        OUI_DATABASE.put("C0:EE:FB", "OPPO");
+        OUI_DATABASE.put("C4:32:B4", "OPPO");
+        OUI_DATABASE.put("C8:33:4B", "OPPO");
+        OUI_DATABASE.put("CC:90:E9", "OPPO");
+        OUI_DATABASE.put("D0:14:11", "OPPO");
+        OUI_DATABASE.put("D4:3A:2C", "OPPO");
+        OUI_DATABASE.put("D8:31:CF", "OPPO");
+        OUI_DATABASE.put("DC:6D:CD", "OPPO");
+        OUI_DATABASE.put("E0:D4:E8", "OPPO");
+        OUI_DATABASE.put("E4:E0:C5", "OPPO");
+        OUI_DATABASE.put("E8:BB:A8", "OPPO");
+        OUI_DATABASE.put("EC:6C:B5", "OPPO");
+        OUI_DATABASE.put("F0:43:47", "OPPO");
+        OUI_DATABASE.put("F4:29:23", "OPPO");
+        OUI_DATABASE.put("F8:0C:F3", "OPPO");
+        OUI_DATABASE.put("FC:87:43", "OPPO");
+
+        // Realtek (common in budget routers/NICs)
+        OUI_DATABASE.put("00:E0:4C", "Realtek");
+        OUI_DATABASE.put("00:E0:4D", "Realtek");
+        OUI_DATABASE.put("52:54:00", "Realtek");
+
+        // Broadcom (embedded in many routers)
+        OUI_DATABASE.put("00:10:18", "Broadcom");
+        OUI_DATABASE.put("00:90:4C", "Broadcom");
+
+        // Hon Hai / Foxconn (common in laptops and PCs)
+        OUI_DATABASE.put("D8:0F:99", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("00:26:18", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("00:22:68", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("00:1F:E2", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("00:1E:65", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("00:1D:D9", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("00:1C:7B", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("00:1B:98", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("00:19:7D", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("00:17:F2", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("00:16:CE", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("00:15:AF", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("00:14:A5", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("00:13:CE", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("18:CF:5E", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("20:89:84", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("28:E3:47", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("30:10:B3", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("38:2D:E8", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("40:A8:F0", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("48:4B:AA", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("5C:AD:CF", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("60:67:20", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("6C:71:D9", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("74:E5:43", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("80:56:F2", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("8C:8D:28", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("94:0C:6D", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("A0:AF:BD", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("AC:BC:32", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("BC:92:6B", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("C4:17:FE", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("D4:BE:D9", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("E8:9A:8F", "Hon Hai/Foxconn");
+        OUI_DATABASE.put("F0:DE:F1", "Hon Hai/Foxconn");
+
+        // Linksys / Belkin
+        OUI_DATABASE.put("00:04:5A", "Linksys");
+        OUI_DATABASE.put("00:06:25", "Linksys");
+        OUI_DATABASE.put("00:0C:41", "Linksys");
+        OUI_DATABASE.put("00:12:17", "Linksys");
+        OUI_DATABASE.put("00:14:BF", "Linksys");
+        OUI_DATABASE.put("00:16:B6", "Linksys");
+        OUI_DATABASE.put("00:18:39", "Linksys");
+        OUI_DATABASE.put("00:1A:70", "Linksys");
+        OUI_DATABASE.put("00:1C:10", "Linksys");
+        OUI_DATABASE.put("00:1D:7E", "Linksys");
+        OUI_DATABASE.put("00:1E:E5", "Linksys");
+        OUI_DATABASE.put("00:20:A6", "Linksys");
+        OUI_DATABASE.put("00:22:6B", "Linksys");
+        OUI_DATABASE.put("00:25:9C", "Linksys");
+        OUI_DATABASE.put("20:AA:4B", "Linksys");
+        OUI_DATABASE.put("48:F8:B3", "Linksys");
+        OUI_DATABASE.put("C0:C1:C0", "Linksys");
+
+        // ZYXEL
+        OUI_DATABASE.put("00:13:49", "ZyXEL");
+        OUI_DATABASE.put("00:19:CB", "ZyXEL");
+        OUI_DATABASE.put("00:A0:C5", "ZyXEL");
+        OUI_DATABASE.put("1C:74:0D", "ZyXEL");
+        OUI_DATABASE.put("28:28:5D", "ZyXEL");
+        OUI_DATABASE.put("30:53:C1", "ZyXEL");
+        OUI_DATABASE.put("48:91:20", "ZyXEL");
+        OUI_DATABASE.put("50:67:F0", "ZyXEL");
+        OUI_DATABASE.put("58:8B:F3", "ZyXEL");
+        OUI_DATABASE.put("80:1F:02", "ZyXEL");
+        OUI_DATABASE.put("90:A2:DA", "ZyXEL");
+        OUI_DATABASE.put("A0:18:28", "ZyXEL");
+        OUI_DATABASE.put("B8:EC:A3", "ZyXEL");
+        OUI_DATABASE.put("D4:BF:7F", "ZyXEL");
+        OUI_DATABASE.put("E8:37:7A", "ZyXEL");
+        OUI_DATABASE.put("F4:3E:61", "ZyXEL");
+
+        // ASUS routers (additional)
+        OUI_DATABASE.put("00:0C:6E", "ASUS");
+        OUI_DATABASE.put("04:D4:C4", "ASUS");
+        OUI_DATABASE.put("08:60:6E", "ASUS");
+        OUI_DATABASE.put("10:C3:7B", "ASUS");
+        OUI_DATABASE.put("2C:4D:54", "ASUS");
+        OUI_DATABASE.put("2C:FD:A1", "ASUS");
+        OUI_DATABASE.put("30:85:A9", "ASUS");
+        OUI_DATABASE.put("38:2C:4A", "ASUS");
+        OUI_DATABASE.put("40:16:7E", "ASUS");
+        OUI_DATABASE.put("4C:ED:FB", "ASUS");
+        OUI_DATABASE.put("60:45:CB", "ASUS");
+        OUI_DATABASE.put("6C:72:20", "ASUS");
+        OUI_DATABASE.put("74:D0:2B", "ASUS");
+        OUI_DATABASE.put("90:E6:BA", "ASUS");
+        OUI_DATABASE.put("AC:22:0B", "ASUS");
+        OUI_DATABASE.put("BC:EE:7B", "ASUS");
+        OUI_DATABASE.put("C8:60:00", "ASUS");
+        OUI_DATABASE.put("E0:CB:4E", "ASUS");
+        OUI_DATABASE.put("F8:32:E4", "ASUS");
 
         // Google
         OUI_DATABASE.put("54:27:1E", "Google");
         OUI_DATABASE.put("68:5B:35", "Google");
         OUI_DATABASE.put("A0:56:F3", "Google");
+        OUI_DATABASE.put("F4:F5:D8", "Google");
 
-        // Amazon (Alexa/Echo)
+        // Amazon (Alexa/Echo/FireTV)
         OUI_DATABASE.put("14:CC:20", "Amazon");
         OUI_DATABASE.put("AC:63:BE", "Amazon");
+        OUI_DATABASE.put("34:D2:70", "Amazon");
+        OUI_DATABASE.put("40:B4:CD", "Amazon");
+        OUI_DATABASE.put("44:65:0D", "Amazon");
+        OUI_DATABASE.put("68:37:E9", "Amazon");
+        OUI_DATABASE.put("74:75:48", "Amazon");
+        OUI_DATABASE.put("84:D6:D0", "Amazon");
+        OUI_DATABASE.put("A0:02:DC", "Amazon");
+        OUI_DATABASE.put("F0:27:2D", "Amazon");
+        OUI_DATABASE.put("FC:A1:83", "Amazon");
 
         // LG
         OUI_DATABASE.put("00:1A:8A", "LG");
         OUI_DATABASE.put("00:23:FB", "LG");
         OUI_DATABASE.put("38:01:97", "LG");
         OUI_DATABASE.put("7C:2F:80", "LG");
+        OUI_DATABASE.put("A8:23:FE", "LG");
+        OUI_DATABASE.put("C4:36:6C", "LG");
+        OUI_DATABASE.put("CC:2D:83", "LG");
+        OUI_DATABASE.put("E8:5B:5B", "LG");
 
         // Sony
         OUI_DATABASE.put("00:04:4B", "Sony");
         OUI_DATABASE.put("00:1F:3A", "Sony");
         OUI_DATABASE.put("08:E9:F3", "Sony");
         OUI_DATABASE.put("50:46:5D", "Sony");
+        OUI_DATABASE.put("AC:9B:0A", "Sony");
+        OUI_DATABASE.put("F0:BF:97", "Sony");
 
         // Nintendo
         OUI_DATABASE.put("00:17:AB", "Nintendo");
         OUI_DATABASE.put("00:19:1D", "Nintendo");
         OUI_DATABASE.put("A4:EF:32", "Nintendo");
+        OUI_DATABASE.put("E0:F6:B5", "Nintendo");
 
         // Microsoft
         OUI_DATABASE.put("00:50:F2", "Microsoft");
         OUI_DATABASE.put("6C:AD:F8", "Microsoft");
         OUI_DATABASE.put("74:6E:2B", "Microsoft");
+        OUI_DATABASE.put("28:18:78", "Microsoft");
+        OUI_DATABASE.put("48:50:73", "Microsoft");
+        OUI_DATABASE.put("7C:ED:8D", "Microsoft");
+        OUI_DATABASE.put("C8:3F:26", "Microsoft");
 
         // Honeywell
         OUI_DATABASE.put("00:07:F0", "Honeywell");
@@ -531,6 +941,16 @@ public class MacVendorLookup {
         // Xerox
         OUI_DATABASE.put("00:00:AA", "Xerox");
         OUI_DATABASE.put("00:80:37", "Xerox");
+
+        // Raspberry Pi Foundation
+        OUI_DATABASE.put("B8:27:EB", "Raspberry Pi");
+        OUI_DATABASE.put("DC:A6:32", "Raspberry Pi");
+        OUI_DATABASE.put("E4:5F:01", "Raspberry Pi");
+
+        // VMware (virtual machines)
+        OUI_DATABASE.put("00:0C:29", "VMware");
+        OUI_DATABASE.put("00:50:56", "VMware");
+        OUI_DATABASE.put("00:05:69", "VMware");
     }
 
     /**
@@ -565,6 +985,45 @@ public class MacVendorLookup {
             return OUI_DATABASE.get(oui);
         }
 
+        // Fallback: query live API for unknown OUIs (cached to avoid repeat calls)
+        if (oui != null) {
+            if (API_CACHE.containsKey(oui)) {
+                return API_CACHE.get(oui);
+            }
+            String apiVendor = lookupViaApi(macAddress);
+            API_CACHE.put(oui, apiVendor);
+            if (!apiVendor.equals("Unknown")) {
+                return apiVendor;
+            }
+        }
+
+        return "Unknown";
+    }
+
+    private static String lookupViaApi(String mac) {
+        try {
+            URL url = new URL("https://api.maclookup.app/v2/macs/" + mac);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(2000);
+            conn.setReadTimeout(2000);
+            if (conn.getResponseCode() != 200) return "Unknown";
+            StringBuilder sb = new StringBuilder();
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+                String line;
+                while ((line = br.readLine()) != null) sb.append(line);
+            }
+            String body = sb.toString();
+            // Parse "company" field from JSON without external library
+            int idx = body.indexOf("\"company\":");
+            if (idx == -1) return "Unknown";
+            int start = body.indexOf('"', idx + 10) + 1;
+            int end = body.indexOf('"', start);
+            if (start > 0 && end > start) {
+                String company = body.substring(start, end).trim();
+                return company.isEmpty() ? "Unknown" : company;
+            }
+        } catch (Exception ignored) {}
         return "Unknown";
     }
 

@@ -1,26 +1,45 @@
-# Network Monitoring and Device Scanner
+# Network Scanner Project
 
-## Phase 1: Setup Project
+## Overview
 
-### Recommended software
+A Java-based Network Monitoring and Device Discovery Tool that scans devices connected to a local network, identifies active hosts, performs TCP port scanning, detects MAC vendors, and exports scan results to CSV.
 
-1. Install Java JDK 17 or above
-2. Install an IDE: NetBeans or IntelliJ IDEA
+## Features
 
-### Project structure
+- Automatic subnet detection
+- Active device discovery
+- TCP port scanning
+- MAC address detection
+- Vendor lookup
+- Device classification
+- Multithreaded scanning
+- Swing GUI dashboard
+- Progress tracking
+- CSV export
 
-- `pom.xml` - Maven build file
-- `src/main/java/com/networkscanner/App.java` - starter application
-- `src/main/java/com/networkscanner/DeviceInfo.java` - device model
-- `src/main/java/com/networkscanner/NetworkScanner.java` - scanner logic
-- `src/main/java/com/networkscanner/ScannerGUI.java` - GUI stub
+## Technologies Used
 
-### Run the project
+- Java
+- Swing
+- TCP/IP Networking
+- Socket Programming
+- ExecutorService
+- Maven
 
-From the project root:
+## Project Structure
 
-```sh
-mvn clean compile exec:java -Dexec.mainClass=com.networkscanner.App
-```
+src/main/java/com/networkscanner
 
-If you use NetBeans or IntelliJ IDEA, open the project folder and import the Maven project.
+- NetworkScanner.java
+- DeviceInfo.java
+- PortScanner.java
+- ArpScanner.java
+- MacVendorLookup.java
+- DeviceClassifier.java
+- ScannerGUI.java
+
+## How to Run
+
+```bash
+mvn clean compile
+mvn exec:java -Dexec.mainClass=com.networkscanner.App

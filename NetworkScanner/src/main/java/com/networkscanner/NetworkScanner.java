@@ -19,6 +19,34 @@ public class NetworkScanner {
         return scanNetwork(null);
     }
 
+    /** Returns the local machine's MAC address using NetworkInterface (bypasses ARP). */
+    private static String getLocalMacAddress() {
+        try {
+            InetAddress localHost = InetAddress.getLocalHost();
+            NetworkInterface ni = NetworkInterface.getByInetAddress(localHost);
+            if (ni == null) return null;
+            byte[] mac = ni.getHardwareAddress();
+            if (mac == null) return null;
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < mac.length; i++) {
+                sb.append(String.format("%02X", mac[i]));
+                if (i < mac.length - 1) sb.append(":");
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Returns the local machine's IP address. */
+    private static String getLocalIpAddress() {
+        try {
+            return InetAddress.getLocalHost().getHostAddress();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public static ArrayList<DeviceInfo> scanNetwork(ProgressListener listener) {
         String subnet = detectLocalSubnet();
         if (subnet == null) {
@@ -31,9 +59,16 @@ public class NetworkScanner {
         String defaultGateway = detectDefaultGateway(subnet);
         System.out.println("Using default gateway: " + defaultGateway);
 
+        // Resolve local machine identity once so worker threads can use it
+        final String localIp  = getLocalIpAddress();
+        final String localMac = getLocalMacAddress();
+
         ArrayList<DeviceInfo> devices = new ArrayList<>();
         List<DeviceInfo> syncDevices = Collections.synchronizedList(devices);
         int timeoutMs = 300;
+
+        // Pre-load ARP cache before scanning (single process, not one per host)
+        ArpScanner.refreshArpCache();
 
         System.out.println("Scanning " + subnet + "1-254 with " + timeoutMs + "ms timeout per host (parallel)...");
 
@@ -69,21 +104,23 @@ public class NetworkScanner {
                     }
 
                     if (reachable) {
-                        String hostname = address.getCanonicalHostName();
-                        if (hostname == null || hostname.equals(ip)) {
-                            hostname = "Unknown";
-                        }
+                        String hostname = HostnameResolver.resolve(ip);
                         DeviceInfo d = new DeviceInfo(ip, hostname, responseTime);
 
-                        // capture MAC address and vendor from ARP table
-                        try {
-                            String mac = ArpScanner.getMacAddress(ip);
-                            d.setMacAddress(mac);
-                            if (mac != null) {
-                                d.setVendor(MacVendorLookup.getVendor(mac));
+                        // For the local machine, use NetworkInterface directly (not ARP)
+                        if (ip.equals(localIp) && localMac != null) {
+                            d.setMacAddress(localMac);
+                            d.setVendor(MacVendorLookup.getVendor(localMac));
+                        } else {
+                            try {
+                                String mac = ArpScanner.getMacAddress(ip);
+                                d.setMacAddress(mac);
+                                if (mac != null) {
+                                    d.setVendor(MacVendorLookup.getVendor(mac));
+                                }
+                            } catch (Exception ex) {
+                                d.setVendor("Unknown");
                             }
-                        } catch (Exception ex) {
-                            d.setVendor("Unknown");
                         }
 
                         // check common ports (SSH, HTTP, HTTPS, RDP)
@@ -95,8 +132,8 @@ public class NetworkScanner {
                             // ignore port scanning failures
                         }
 
-                        // classify device type
-                        String deviceType = DeviceClassifier.classifyDevice(ip, hostname, d.getOpenPorts(), defaultGateway);
+                        // classify device type — pass vendor and mac for richer classification
+                        String deviceType = DeviceClassifier.classifyDevice(ip, hostname, d.getOpenPorts(), defaultGateway, d.getVendor(), d.getMacAddress());
                         d.setDeviceType(deviceType);
 
                         System.out.println("Found: " + ip + " | " + hostname + " | " + deviceType + " | mac: " + d.getMacAddress() + " | vendor: " + d.getVendor() + " | open ports: " + d.getOpenPorts());
@@ -123,6 +160,27 @@ public class NetworkScanner {
         } catch (InterruptedException ie) {
             executor.shutdownNow();
             Thread.currentThread().interrupt();
+        }
+
+        // Refresh ARP cache after all hosts have been pinged, then fill in any missing MACs
+        ArpScanner.refreshArpCache();
+        for (DeviceInfo d : devices) {
+            if (d.getMacAddress() == null) {
+                if (d.getIp().equals(localIp) && localMac != null) {
+                    d.setMacAddress(localMac);
+                    d.setVendor(MacVendorLookup.getVendor(localMac));
+                } else {
+                    String mac = ArpScanner.getMacAddress(d.getIp());
+                    d.setMacAddress(mac);
+                    if (mac != null) {
+                        d.setVendor(MacVendorLookup.getVendor(mac));
+                    }
+                }
+                // Re-classify now that vendor may be known
+                String deviceType = DeviceClassifier.classifyDevice(
+                    d.getIp(), d.getHostname(), d.getOpenPorts(), defaultGateway, d.getVendor(), d.getMacAddress());
+                d.setDeviceType(deviceType);
+            }
         }
 
         System.out.println("Scan complete: " + devices.size() + " devices found.");

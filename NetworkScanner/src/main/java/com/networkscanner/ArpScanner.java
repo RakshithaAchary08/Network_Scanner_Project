@@ -13,6 +13,14 @@ import java.util.regex.Pattern;
  */
 public class ArpScanner {
 
+    // Cached ARP table — populated once per scan to avoid spawning hundreds of processes
+    private static volatile Map<String, String> cachedArpTable = null;
+
+    /** Call this once before scanning to pre-load the ARP cache. */
+    public static void refreshArpCache() {
+        cachedArpTable = scanArpTable();
+    }
+
     /**
      * Scans the local ARP table and returns a map of IP addresses to MAC addresses.
      *
@@ -92,14 +100,22 @@ public class ArpScanner {
     }
 
     /**
-     * Gets the MAC address for a specific IP from the ARP table.
+     * Gets the MAC address for a specific IP from the cached ARP table.
+     * Falls back to a fresh scan if the cached table is empty or missing the IP.
      *
      * @param ip IP address to look up
      * @return MAC address if found, null otherwise
      */
     public static String getMacAddress(String ip) {
-        Map<String, String> arpTable = scanArpTable();
-        return arpTable.get(ip);
+        // Use cache if available
+        if (cachedArpTable != null) {
+            String mac = cachedArpTable.get(ip);
+            if (mac != null) return mac;
+            // Refresh once more in case host just became reachable
+            cachedArpTable = scanArpTable();
+            return cachedArpTable.get(ip);
+        }
+        return scanArpTable().get(ip);
     }
 
     /**

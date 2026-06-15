@@ -11,9 +11,6 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-    <dependencies>
-        <!-- Add libraries later: SNMP, network utilities, UI, etc. -->
-    </dependencies>
 
     <build>
         <plugins>
